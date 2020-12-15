@@ -62,18 +62,6 @@ public class LoggerManager {
         // логгеры конкретно данного юзера:
         HashMap<String, Logger> hashMap = loggers.get(userName);
 
-        // ищем подходящий логгер по classReference либо по пакетам выше
-        String substringOfTheClassReference = classReference;
-        int ind = substringOfTheClassReference.lastIndexOf(".");
-        if (hashMap != null) {
-            while (logger == null && ind != -1) {
-                logger = hashMap.get(substringOfTheClassReference);
-                substringOfTheClassReference = substringOfTheClassReference.substring(0, ind);
-                ind = substringOfTheClassReference.lastIndexOf(".");
-                substringOfTheClassReference+="*";
-            }
-        }
-
         if (logger == null) {
             Logger logger1 = LOGGER_FACTORY.getLogger(userName, classReference);
             ArrayList<LoggerProperty> loggerPropertiesList =
@@ -118,17 +106,17 @@ public class LoggerManager {
     public static LoggerProperty getProperty(Logger logger) {
         loggerManager.updateLoggerProperties();
 
-        LoggerProperty loggerProperty = loggerProperties.get(logger.getUserName()).get(logger.getClassReference());
-
         // ищем подходящее property по classReference либо по пакетам выше
         String substringOfTheClassReference = logger.getClassReference();
         int ind = substringOfTheClassReference.lastIndexOf(".");
-
-        while (loggerProperty == null && ind != -1) {
-            loggerProperty = loggerProperties.get(logger.getUserName()).get(substringOfTheClassReference);
-            substringOfTheClassReference = substringOfTheClassReference.substring(0, ind);
-            ind = substringOfTheClassReference.lastIndexOf(".");
-            substringOfTheClassReference+="*";
+        LoggerProperty loggerProperty = null;
+        if (loggerProperties.get(logger.getUserName()) != null) {
+            while (loggerProperty == null && ind != -1) {
+                loggerProperty = loggerProperties.get(logger.getUserName()).get(substringOfTheClassReference);
+                substringOfTheClassReference = substringOfTheClassReference.substring(0, ind);
+                substringOfTheClassReference+=".*";
+                ind = substringOfTheClassReference.lastIndexOf(".");
+            }
         }
 
         return loggerProperty;

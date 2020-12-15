@@ -1,14 +1,14 @@
-package logger;
-
+import logger.LoggerManager;
 import logger.loggers.Logger;
 
 public class Main {
     public static Logger logger1 = LoggerManager
-            .getLogger("ELENA", "main.java.target.classes.org.nc.logger.Main");
+            .getLogger("ELENA", "src.main.java.Main");
     public static Logger logger2 = LoggerManager
-            .getLogger("ANMI", "org.nc.logger.classes.*");
+            .getLogger("ANMI", "src.main.java.LogClass");
 
     public static void main(String[] args){
+
         logger1.all("logger1 - Some massage for all.");
         logger1.trace("logger1 - Some massage for trace.");
         logger1.debug("logger1 - Some massage for debug.");

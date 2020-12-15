@@ -39,7 +39,7 @@ public class DataBaseHandler  implements Handler{
     public void handle(MessageStructure message) {
         // конструируем сообщение с датой по шаблону из log.properties
         String dateAsString = "";
-        if (!timePattern.equals("") && timePattern != null) {
+        if (!timePattern.isEmpty() && timePattern != null) {
             Date dateNow = new Date();
             SimpleDateFormat formatForDateNow = new SimpleDateFormat(timePattern);
             dateAsString = formatForDateNow.format(dateNow);
@@ -48,6 +48,7 @@ public class DataBaseHandler  implements Handler{
         try {
             DriverManager.registerDriver(Driver.load());
             try (Connection connection = DriverManager.getConnection(this.connection, this.userName, this.password);) {
+                createTable(connection);
                 try (Statement statement = connection.createStatement();) {
                     StringBuilder query = new StringBuilder();
                     query.append("INSERT INTO ");
@@ -69,6 +70,28 @@ public class DataBaseHandler  implements Handler{
             }
         } catch (Exception exception) {
             exception.printStackTrace();
+        }
+    }
+
+    public void createTable(Connection connection) {
+        StringBuilder query = new StringBuilder();
+        query.append("CREATE TABLE IF NOT EXISTS ");
+        query.append(this.tableName);
+        query.append(" (");
+        query.append("id int NOT NULL AUTO_INCREMENT,");
+        query.append("date varchar(200),");
+        query.append("userName varchar(200) NOT NULL,");
+        query.append("classReference varchar(1000),");
+        query.append("level varchar(10),");
+        query.append("message varchar(1000),");
+        query.append("PRIMARY KEY (id)");
+        query.append(");");
+
+        try (Statement statement = connection.createStatement();)
+        {
+            statement.executeUpdate(query.toString());
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
         }
     }
 }

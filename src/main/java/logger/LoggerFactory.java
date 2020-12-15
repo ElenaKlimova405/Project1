@@ -1,12 +1,21 @@
 package logger;
 
 import logger.loggers.*;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class LoggerFactory {
-    public Logger getLogger(String userName, String classReference) {
+    String fileKey = ".logger.fileLogger.file";
+    String maxFileSizeKey = ".logger.fileLogger.maxFileSize";
+    String maxBackupIndexKey = ".logger.fileLogger.maxBackupIndex";
+    String timePatternKey = ".time.pattern";
+
+    String connection = ".logger.dataBaseLogger.connection";
+    String userNameDataBase = ".logger.dataBaseLogger.userName";
+    String password = ".logger.dataBaseLogger.password";
+    String tableName = ".logger.dataBaseLogger.tableName";
+
+    public void checkingNameForNull(String userName) {
         try {
             if (userName == null)
             {
@@ -15,23 +24,17 @@ public class LoggerFactory {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
 
+    public List<Handler> getFileHandlers(String userName, String timePattern) {
+        int step = 0;
         List<Handler> handlers = new ArrayList<>();
 
-        // здесь только FileHandler.
-        String fileKey = userName+".logger.file";
-        String maxFileSizeKey = userName+".logger.maxFileSize";
-        String maxBackupIndexKey = userName+".logger.maxBackupIndex";
-        String timePatternKey = userName+".time.pattern";
-
-        // timePatternKey
-        String gettingPattern = PropertyService.getProperty(timePatternKey).trim();
-
-        int step = 0;
         while (true) {
-            String currentFileKey = fileKey;
-            String currentMaxFileSizeKey = maxFileSizeKey;
-            String currentMaxBackupIndexKey = maxBackupIndexKey;
+            String currentFileKey = userName + fileKey;
+            String currentMaxFileSizeKey = userName + maxFileSizeKey;
+            String currentMaxBackupIndexKey = userName + maxBackupIndexKey;
+
             if (step != 0) {
                 currentFileKey = currentFileKey + step;
                 currentMaxFileSizeKey = currentMaxFileSizeKey + step;
@@ -43,7 +46,7 @@ public class LoggerFactory {
             PropertyService.setPathToTheLogPropertiesFile(LoggerManager.getPathToTheLogPropertiesFile());
             String gettingFile = PropertyService.getProperty(currentFileKey);
 
-            if (gettingFile == null) {
+            if (gettingFile == null || gettingFile.isEmpty()) {
                 if (step == 0 || step == 1) {
                     continue;
                 }
@@ -55,7 +58,7 @@ public class LoggerFactory {
             int gettingMaxFileSize;
             String gettingUnit;
             if (split.length == 2) {
-                gettingMaxFileSize = Integer.valueOf(split[0].trim());
+                gettingMaxFileSize = Integer.parseInt(split[0].trim());
                 gettingUnit = split[1].trim();
             }
             else {
@@ -74,45 +77,65 @@ public class LoggerFactory {
                 gettingMaxBackupIndex = Integer.MAX_VALUE;
             }
 
-            if (gettingFile != null && !gettingFile.equals("")) {
+            if (gettingFile != null && !gettingFile.isEmpty()) {
                 FileHandler fileHandler = new FileHandler(gettingFile);
                 fileHandler.setMaxFileSize(gettingMaxFileSize);
                 fileHandler.setUnit(gettingUnit);
                 fileHandler.setMaxBackupIndex(gettingMaxBackupIndex);
-                fileHandler.setTimePattern(gettingPattern);
+                fileHandler.setTimePattern(timePattern);
 
                 handlers.add(fileHandler);
             }
         }
 
+        return handlers;
+    }
 
-        // здесь только DataBaseHandler.
-        String connection = userName+".logger.dataBaseLogger.connection";
-        String userNameDataBase = userName+".logger.dataBaseLogger.userName";
-        String password = userName+".logger.dataBaseLogger.password";
-        String tableName = userName+".logger.dataBaseLogger.tableName";
-
+    public Handler getDataBaseHandler(String userName, String timePattern) {
         // connection
-        String gettingConnection = PropertyService.getProperty(connection);
+        String gettingConnection = PropertyService.getProperty(userName + connection);
 
         // userNameDataBase
-        String gettingUserNameDataBase = PropertyService.getProperty(userNameDataBase);
+        String gettingUserNameDataBase = PropertyService.getProperty(userName + userNameDataBase);
 
         // password
-        String gettingPassword = PropertyService.getProperty(password);
+        String gettingPassword = PropertyService.getProperty(userName + password);
 
         // tableName
-        String gettingTableName = PropertyService.getProperty(tableName);
+        String gettingTableName = PropertyService.getProperty(userName + tableName);
 
-        if (gettingConnection != null && !gettingConnection.equals("")) {
+        if (gettingConnection != null && !gettingConnection.isEmpty()) {
             DataBaseHandler dataBaseHandler = new DataBaseHandler(gettingConnection);
-            dataBaseHandler.setTimePattern(gettingPattern);
+            dataBaseHandler.setTimePattern(timePattern);
             dataBaseHandler.setUserName(gettingUserNameDataBase);
             dataBaseHandler.setPassword(gettingPassword);
             dataBaseHandler.setTableName(gettingTableName);
-            handlers.add(dataBaseHandler);
+            return dataBaseHandler;
         }
 
+        return null;
+    }
+
+    public Logger getLogger(String userName, String classReference) {
+
+        checkingNameForNull(userName);
+
+        List<Handler> handlers = new ArrayList<>();
+
+        // timePatternKey
+        String gettingPattern = PropertyService.getProperty(userName + timePatternKey).trim();
+
+        List<Handler> fileHandlers = new ArrayList<>();
+        fileHandlers = getFileHandlers(userName, gettingPattern);
+        if (fileHandlers != null) {
+            handlers.addAll(fileHandlers);
+        }
+
+        Handler dataBaseHandler;
+        dataBaseHandler = getDataBaseHandler(userName, gettingPattern);
+        if (dataBaseHandler != null) {
+            handlers.add(dataBaseHandler);
+        }
 
         Logger logger = new Logger(userName, classReference, handlers);
         return logger;
@@ -120,14 +143,7 @@ public class LoggerFactory {
 
 
     public List<LoggerProperty> getProperties(String userName) {
-        try {
-            if (userName == null)
-            {
-                throw new Exception("UserName must be not null");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        checkingNameForNull(userName);
 
         int step = 0;
         List<LoggerProperty> loggerProperties = new ArrayList<>();
@@ -139,7 +155,7 @@ public class LoggerFactory {
 
             PropertyService.setPathToTheLogPropertiesFile(LoggerManager.getPathToTheLogPropertiesFile());
             String classReference = PropertyService.getProperty(currentProperty);
-            if (classReference == null || classReference.equals("")) {
+            if (classReference == null || classReference.isEmpty()) {
                 if (step == 0 || step == 1) {
                     continue;
                 }
@@ -164,7 +180,7 @@ public class LoggerFactory {
                     logLevels.add(LogLevel.valueOf(s.trim()));
                 }
 
-            if (reference != null && ! reference.equals("")) {
+            if (reference != null && !reference.isEmpty()) {
                 LoggerProperty loggerProperty = new LoggerProperty(reference, logLevels);
                 loggerProperties.add(loggerProperty);
             }
